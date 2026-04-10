@@ -33,6 +33,13 @@ Operational fields:
 - timeoutSec (number, optional): run timeout in seconds
 - graceSec (number, optional): SIGTERM grace period in seconds
 
+Ollama Support:
+- To use Ollama models, set env variables:
+  - ANTHROPIC_BASE_URL=http://localhost:11434
+  - ANTHROPIC_AUTH_TOKEN=ollama
+  - CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+- Then use any model name supported by your Ollama installation (e.g., "qwen2.5-coder:7b")
+
 Notes:
 - When Paperclip realizes a workspace/runtime for a run, it injects PAPERCLIP_WORKSPACE_* and PAPERCLIP_RUNTIME_* env vars for agent-side tooling.
 `;

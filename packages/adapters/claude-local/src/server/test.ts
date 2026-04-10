@@ -75,10 +75,30 @@ export async function testEnvironment(
   }
 
   const envConfig = parseObject(config.env);
+  const hasExplicitApiKey =
+    (typeof envConfig.PAPERCLIP_API_KEY === "string" && envConfig.PAPERCLIP_API_KEY.trim().length > 0) ||
+    (typeof envConfig.ANTHROPIC_API_KEY === "string" && envConfig.ANTHROPIC_API_KEY.trim().length > 0);
   const env: Record<string, string> = {};
+  
+  // Set default Ollama configuration if no explicit API key is provided
+  if (!hasExplicitApiKey) {
+    // Default to Ollama configuration
+    if (!envConfig.ANTHROPIC_BASE_URL) {
+      env.ANTHROPIC_BASE_URL = "http://localhost:11434";
+    }
+    if (!envConfig.ANTHROPIC_AUTH_TOKEN) {
+      env.ANTHROPIC_AUTH_TOKEN = "ollama";
+    }
+    if (!envConfig.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC) {
+      env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+    }
+  }
+
+  // Copy all configured environment variables
   for (const [key, value] of Object.entries(envConfig)) {
     if (typeof value === "string") env[key] = value;
   }
+
   const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
   try {
     await ensureCommandResolvable(command, cwd, runtimeEnv);
@@ -123,19 +143,34 @@ export async function testEnvironment(
   } else if (isNonEmpty(configApiKey) || isNonEmpty(hostApiKey)) {
     const source = isNonEmpty(configApiKey) ? "adapter config env" : "server environment";
     checks.push({
-      code: "claude_anthropic_api_key_overrides_subscription",
-      level: "warn",
+      code: "claude_anthropic_api_key_overrides_ollama",
+      level: "info",
       message:
-        "ANTHROPIC_API_KEY is set. Claude will use API-key auth instead of subscription credentials.",
+        "ANTHROPIC_API_KEY is set. Claude will use official API instead of Ollama.",
       detail: `Detected in ${source}.`,
-      hint: "Unset ANTHROPIC_API_KEY if you want subscription-based Claude login behavior.",
+      hint: "Unset ANTHROPIC_API_KEY if you want to use Ollama instead.",
     });
   } else {
-    checks.push({
-      code: "claude_subscription_mode_possible",
-      level: "info",
-      message: "ANTHROPIC_API_KEY is not set; subscription-based auth can be used if Claude is logged in.",
-    });
+    // Check if ollama configuration is set (default or explicit)
+    const hasOllamaConfig = 
+      env.ANTHROPIC_BASE_URL === "http://localhost:11434" ||
+      (typeof env.ANTHROPIC_BASE_URL === "string" && env.ANTHROPIC_BASE_URL.trim().length > 0);
+    
+    if (hasOllamaConfig) {
+      checks.push({
+        code: "claude_ollama_mode",
+        level: "info",
+        message: "Using Ollama configuration for Claude.",
+        detail: `Base URL: ${env.ANTHROPIC_BASE_URL || 'http://localhost:11434'}`,
+        hint: "Set ANTHROPIC_API_KEY if you want to use official Anthropic API instead.",
+      });
+    } else {
+      checks.push({
+        code: "claude_subscription_mode_possible",
+        level: "info",
+        message: "ANTHROPIC_API_KEY is not set; subscription-based auth can be used if Claude is logged in.",
+      });
+    }
   }
 
   const canRunProbe =
@@ -179,7 +214,7 @@ export async function testEnvironment(
         {
           cwd,
           env,
-          timeoutSec: 45,
+          timeoutSec: 180,
           graceSec: 5,
           stdin: "Respond with hello.",
           onLog: async () => {},
