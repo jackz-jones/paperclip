@@ -154,9 +154,24 @@ async function buildClaudeRuntimeConfig(input: ClaudeExecutionInput): Promise<Cl
 
   const envConfig = parseObject(config.env);
   const hasExplicitApiKey =
-    typeof envConfig.PAPERCLIP_API_KEY === "string" && envConfig.PAPERCLIP_API_KEY.trim().length > 0;
+    (typeof envConfig.PAPERCLIP_API_KEY === "string" && envConfig.PAPERCLIP_API_KEY.trim().length > 0) ||
+    (typeof envConfig.ANTHROPIC_API_KEY === "string" && envConfig.ANTHROPIC_API_KEY.trim().length > 0);
   const env: Record<string, string> = { ...buildPaperclipEnv(agent) };
   env.PAPERCLIP_RUN_ID = runId;
+
+  // Set default Ollama configuration if no explicit API key is provided
+  if (!hasExplicitApiKey) {
+    // Default to Ollama configuration
+    if (!envConfig.ANTHROPIC_BASE_URL) {
+      env.ANTHROPIC_BASE_URL = "http://localhost:11434";
+    }
+    if (!envConfig.ANTHROPIC_AUTH_TOKEN) {
+      env.ANTHROPIC_AUTH_TOKEN = "ollama";
+    }
+    if (!envConfig.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC) {
+      env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+    }
+  }
 
   const wakeTaskId =
     (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
