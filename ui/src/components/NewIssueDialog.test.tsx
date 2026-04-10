@@ -193,6 +193,7 @@ vi.mock("@/components/ui/dialog", () => ({
     onEscapeKeyDown?: (event: unknown) => void;
     onPointerDownOutside?: (event: unknown) => void;
   }) => <div {...props}>{children}</div>,
+  DialogTitle: ({ children, ...props }: ComponentProps<"h2">) => <h2 {...props}>{children}</h2>,
 }));
 
 vi.mock("@/components/ui/button", () => ({
@@ -211,6 +212,12 @@ vi.mock("@/components/ui/popover", () => ({
   Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
   PopoverContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@/components/ui/tooltip", () => ({
+  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
