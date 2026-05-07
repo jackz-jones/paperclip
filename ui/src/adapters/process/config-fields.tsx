@@ -34,7 +34,7 @@ export function ProcessConfigFields({
 }: AdapterConfigFieldsProps) {
   return (
     <>
-      <Field label="Command" hint={help.command}>
+      <Field label="Command *" hint={help.command}>
         <DraftInput
           value={
             isCreate

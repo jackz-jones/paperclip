@@ -651,6 +651,13 @@ export function agentRoutes(
     adapterType: string | null | undefined,
     adapterConfig: Record<string, unknown>,
   ) {
+    if (adapterType === "process") {
+      const command = typeof adapterConfig.command === "string" ? adapterConfig.command.trim() : "";
+      if (!command) {
+        throw unprocessable("Process adapter requires a command to execute");
+      }
+      return;
+    }
     if (adapterType !== "opencode_local") return;
     const { config: runtimeConfig } = await secretsSvc.resolveAdapterConfigForRuntime(companyId, adapterConfig);
     const runtimeEnv = asRecord(runtimeConfig.env) ?? {};

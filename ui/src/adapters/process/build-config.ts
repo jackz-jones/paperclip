@@ -7,6 +7,13 @@ function parseCommaArgs(value: string): string[] {
     .filter(Boolean);
 }
 
+export function validateProcessConfig(v: CreateConfigValues): string | null {
+  if (!v.command?.trim()) {
+    return "Command is required for process adapter";
+  }
+  return null;
+}
+
 export function buildProcessConfig(v: CreateConfigValues): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
