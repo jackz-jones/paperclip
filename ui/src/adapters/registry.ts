@@ -5,6 +5,7 @@ import { codexLocalUIAdapter } from "./codex-local";
 import { cursorLocalUIAdapter } from "./cursor";
 import { geminiLocalUIAdapter } from "./gemini-local";
 import { openCodeLocalUIAdapter } from "./opencode-local";
+import { ollamaLocalUIAdapter } from "./ollama-local";
 import { piLocalUIAdapter } from "./pi-local";
 import { openClawGatewayUIAdapter } from "./openclaw-gateway";
 import { hermesLocalUIAdapter } from "./hermes-local";
@@ -55,6 +56,7 @@ function registerBuiltInUIAdapters() {
     codexLocalUIAdapter,
     geminiLocalUIAdapter,
     hermesLocalUIAdapter,
+    ollamaLocalUIAdapter,
     openCodeLocalUIAdapter,
     piLocalUIAdapter,
     cursorLocalUIAdapter,

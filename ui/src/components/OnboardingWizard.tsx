@@ -44,6 +44,7 @@ import {
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@paperclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@paperclipai/adapter-gemini-local";
 import { DEFAULT_OPENCODE_LOCAL_MODEL, isValidOpenCodeModelId } from "@paperclipai/adapter-opencode-local";
+import { DEFAULT_OLLAMA_BASE_URL, DEFAULT_OLLAMA_MODEL, models as ollamaModels } from "@paperclipai/adapter-ollama-local";
 import { resolveRouteOnboardingOptions } from "../lib/onboarding-route";
 import { AsciiArtAnimation } from "./AsciiArtAnimation";
 import {
@@ -115,6 +116,7 @@ export function OnboardingWizard() {
   const [command, setCommand] = useState("");
   const [args, setArgs] = useState("");
   const [url, setUrl] = useState("");
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState(DEFAULT_OLLAMA_BASE_URL);
   const [adapterEnvResult, setAdapterEnvResult] =
     useState<AdapterEnvironmentTestResult | null>(null);
   const [adapterEnvError, setAdapterEnvError] = useState<string | null>(null);
@@ -330,7 +332,9 @@ export function OnboardingWizard() {
             ? model || DEFAULT_CURSOR_LOCAL_MODEL
             : adapterType === "opencode_local"
               ? model || DEFAULT_OPENCODE_LOCAL_MODEL
-              : model,
+              : adapterType === "ollama_local"
+                ? model || DEFAULT_OLLAMA_MODEL
+                : model,
       command,
       args,
       url,
@@ -339,7 +343,12 @@ export function OnboardingWizard() {
       dangerouslyBypassSandbox:
         adapterType === "codex_local"
           ? DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX
-          : defaultCreateValues.dangerouslyBypassSandbox
+          : defaultCreateValues.dangerouslyBypassSandbox,
+      ...(adapterType === "ollama_local" ? {
+        adapterSchemaValues: {
+          baseUrl: ollamaBaseUrl || DEFAULT_OLLAMA_BASE_URL,
+        }
+      } : {})
     });
     if (adapterType === "claude_local" && forceUnsetAnthropicApiKey) {
       const env =
@@ -823,6 +832,10 @@ export function OnboardingWizard() {
                                 setModel(DEFAULT_OPENCODE_LOCAL_MODEL);
                                 return;
                               }
+                              if (nextType === "ollama_local") {
+                                setModel(DEFAULT_OLLAMA_MODEL);
+                                return;
+                              }
                               setModel("");
                             }}
                           >
@@ -840,7 +853,100 @@ export function OnboardingWizard() {
                   </div>
 
                   {/* Conditional adapter fields */}
-                  {isLocalAdapter && (
+                  {adapterType === "ollama_local" && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">
+                          Base URL
+                        </label>
+                        <input
+                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
+                          placeholder={DEFAULT_OLLAMA_BASE_URL}
+                          value={ollamaBaseUrl}
+                          onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Ollama API 服务地址，默认 http://localhost:11434
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">
+                          Model
+                        </label>
+                        <Popover
+                          open={modelOpen}
+                          onOpenChange={(next) => {
+                            setModelOpen(next);
+                            if (!next) setModelSearch("");
+                          }}
+                        >
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent/50 transition-colors w-full justify-between">
+                              <span className={cn(!model && "text-muted-foreground")}>
+                                {model || "Select model (required)"}
+                              </span>
+                              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-[var(--radix-popover-trigger-width)] p-1"
+                            align="start"
+                          >
+                            <input
+                              className="w-full px-2 py-1.5 text-xs bg-transparent outline-none border-b border-border mb-1 placeholder:text-muted-foreground/50"
+                              placeholder="Search or type model name..."
+                              value={modelSearch}
+                              onChange={(e) => setModelSearch(e.target.value)}
+                              autoFocus
+                            />
+                            <div className="max-h-[240px] overflow-y-auto">
+                              {(adapterModels && adapterModels.length > 0 ? adapterModels : ollamaModels)
+                                .filter((m) =>
+                                  !modelSearch || m.label.toLowerCase().includes(modelSearch.toLowerCase()) || m.id.toLowerCase().includes(modelSearch.toLowerCase())
+                                )
+                                .map((m) => (
+                                  <button
+                                    key={m.id}
+                                    className={cn(
+                                      "flex items-center w-full px-2 py-1.5 text-sm rounded hover:bg-accent/50",
+                                      m.id === model && "bg-accent"
+                                    )}
+                                    onClick={() => {
+                                      setModel(m.id);
+                                      setModelOpen(false);
+                                      setModelSearch("");
+                                    }}
+                                  >
+                                    <span className="block w-full text-left truncate" title={m.id}>
+                                      {m.label}
+                                    </span>
+                                  </button>
+                                ))}
+                              {modelSearch && !(adapterModels && adapterModels.length > 0 ? adapterModels : ollamaModels).some((m) => m.id === modelSearch) && (
+                                <button
+                                  className="flex items-center w-full px-2 py-1.5 text-sm rounded hover:bg-accent/50 text-muted-foreground"
+                                  onClick={() => {
+                                    setModel(modelSearch);
+                                    setModelOpen(false);
+                                    setModelSearch("");
+                                  }}
+                                >
+                                  Use "{modelSearch}"
+                                </button>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {adapterModels && adapterModels.length > 0
+                            ? `已从本地 Ollama 发现 ${adapterModels.length} 个模型`
+                            : "未连接到 Ollama 服务，显示常见模型（需先通过 ollama pull 下载）"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isLocalAdapter && adapterType !== "ollama_local" && (
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">

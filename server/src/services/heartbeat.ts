@@ -7603,6 +7603,22 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             );
           }
         }
+        // 处理 adapter 返回的 issueDisposition：自动更新 issue 状态
+        // 这允许纯文本生成 adapter（如 Ollama）通过 resultJson 来控制 issue 状态
+        if (issueId && outcome === "succeeded" && persistedResultJson) {
+          const adapterDisposition = readNonEmptyString(persistedResultJson.issueDisposition);
+          if (adapterDisposition && ["done", "cancelled", "blocked"].includes(adapterDisposition)) {
+            try {
+              await issuesSvc.update(issueId, { status: adapterDisposition as "done" | "cancelled" | "blocked" });
+              await onLog("stdout", `[paperclip] Issue status updated to '${adapterDisposition}' by adapter disposition\n`);
+            } catch (err) {
+              await onLog(
+                "stderr",
+                `[paperclip] Failed to update issue status from adapter disposition: ${err instanceof Error ? err.message : String(err)}\n`,
+              );
+            }
+          }
+        }
         if (outcome === "failed" && isMaxTurnExhaustionRun(livenessRun)) {
           const policy = parseMaxTurnContinuationPolicy(agent);
           if (policy.enabled && policy.maxAttempts > 0) {
