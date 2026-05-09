@@ -1106,8 +1106,10 @@ export function agentRoutes(
       return (updated as T | null) ?? { ...agent, adapterConfig: nextAdapterConfig };
     }
 
+    const defaultFiles = await loadDefaultAgentInstructionsBundle(resolveDefaultAgentInstructionsBundleRole(agent.role));
     const files = input?.files
-      ?? await loadDefaultAgentInstructionsBundle(resolveDefaultAgentInstructionsBundleRole(agent.role));
+      ? { ...defaultFiles, ...input.files }
+      : defaultFiles;
     const materialized = await instructions.materializeManagedBundle(
       agent,
       files,
